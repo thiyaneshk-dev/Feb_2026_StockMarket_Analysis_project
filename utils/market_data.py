@@ -20,6 +20,53 @@ def get_live_price(ticker):
         pass
     return None
 
+@st.cache_data(ttl=60)
+def get_live_prices_bulk(tickers):
+    """Get live prices for multiple tickers in parallel"""
+    if not tickers:
+        return {}
+    
+    # Format all tickers
+    symbols = [format_ticker(t) for t in tickers]
+    formatted_str = " ".join(symbols)
+    
+    try:
+        # Use bulk download
+        data = yf.download(formatted_str, period="1d", threads=True, progress=False)
+        
+        # Helper to extract last price
+        def get_last_price(df_or_series):
+            if df_or_series.empty:
+                return None
+            return df_or_series.iloc[-1]
+
+        results = {}
+        
+        # yfinance structure depends on number of tickers
+        if len(symbols) == 1:
+            sym = symbols[0]
+            if 'Close' in data:
+                 # Check if it's a series or dataframe
+                 val = data['Close']
+                 if isinstance(val, pd.Series):
+                      results[sym] = val.iloc[-1]
+                 else:
+                      results[sym] = val.iloc[-1]
+        else:
+             if 'Close' in data:
+                 close_data = data['Close']
+                 for sym in symbols:
+                     if sym in close_data:
+                         results[sym] = close_data[sym].iloc[-1]
+                     else:
+                         results[sym] = None
+        
+        return results
+    except Exception as e:
+        print(f"Bulk fetch error: {e}")
+        return {}
+
+
 def format_ticker(ticker):
     """Ensure NSE tickers have .NS suffix"""
     ticker = str(ticker).strip().upper()

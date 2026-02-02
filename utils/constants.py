@@ -40,8 +40,8 @@ SGB_MAPPING = {
 GLOBAL_INDICES = {
     "NIFTY 50": "^NSEI",
     "BANK NIFTY": "^NSEBANK",
-    "Agri": "^NSEAGRI",
-    "Auto": "^NSEAUTO",
+    "Nifty Next 50": "^NSMIDCP",
+    "Nifty IT": "^CNXIT",
     "Pharma": "^CNXPHARMA",
     "Comex Gold": "GC=F",
     "Silver": "SI=F",

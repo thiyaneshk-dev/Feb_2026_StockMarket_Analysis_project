@@ -4,13 +4,10 @@ import requests
 from streamlit_lottie import st_lottie
 from streamlit_autorefresh import st_autorefresh
 from utils.constants import GLOBAL_INDICES
-from utils.market_data import get_live_price, format_ticker
+from utils.market_data import get_live_price, get_live_prices_bulk, format_ticker
 
 # Page Config
 st.set_page_config(page_title="Stock Dashboard", page_icon="📈", layout="wide")
-
-# Auto-refresh every 60 seconds
-count = st_autorefresh(interval=60 * 1000, limit=None, key="fizzbuzzcounter")
 
 # Helper: Load Lottie
 def load_lottieurl(url: str):
@@ -42,21 +39,29 @@ st.divider()
 # Live Market Overview
 st.subheader("🌍 Global Market Pulse")
 
-# Fetch Data for Indices
-metrics = []
-for name, ticker in GLOBAL_INDICES.items():
-    price = get_live_price(ticker)
-    metrics.append({"Index": name, "Price": price, "Ticker": ticker})
+@st.fragment(run_every=5)
+def render_market_pulse():
+    # Fetch Data for Indices in Bulk
+    tickers = list(GLOBAL_INDICES.values())
+    bulk_prices = get_live_prices_bulk(tickers)
+    
+    metrics = []
+    for name, ticker in GLOBAL_INDICES.items():
+        formatted_ticker = format_ticker(ticker)
+        price = bulk_prices.get(formatted_ticker)
+        metrics.append({"Index": name, "Price": price, "Ticker": ticker})
 
-# Display Metrics in Rows of 4
-cols = st.columns(5)
-for i, metric in enumerate(metrics):
-    with cols[i % 5]:
-        price_val = metric['Price']
-        if price_val:
-            st.metric(metric['Index'], f"{price_val:,.2f}")
-        else:
-            st.metric(metric['Index'], "Loading...")
+    # Display Metrics in Rows of 5
+    cols = st.columns(5)
+    for i, metric in enumerate(metrics):
+        with cols[i % 5]:
+            price_val = metric['Price']
+            if price_val:
+                st.metric(metric['Index'], f"{price_val:,.2f}")
+            else:
+                st.metric(metric['Index'], "Loading...")
+
+render_market_pulse()
 
 st.divider()
 
