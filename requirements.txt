@@ -1,0 +1,11 @@
+streamlit
+pandas
+yfinance
+plotly
+numpy
+ta-lib-bin; platform_system == 'Windows'
+# For Mac/Linux, TA-Lib might need binary installation, but we'll use pandas-ta or manual calculation if needed to avoid build issues.
+# Actually, the reference used manual calculations in `indicators.py`, so we might not need TA-Lib.
+# Reference requirements:
+requests
+python-dotenv
