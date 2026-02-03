@@ -89,47 +89,24 @@ render_market_pulse()
 st.divider()
 
 import streamlit.components.v1 as components
+from utils.ui_components import render_tradingview_ticker
 
 # ------------------------------------------------------------------------------
 # TRADINGVIEW WIDGETS (Real-time Streaming)
 # ------------------------------------------------------------------------------
 
 # ROW 1: INDIA INDICES
-# st.subheader("🇮🇳 Indian Market Pulse")
-widget_india = """
-<!-- TradingView Widget BEGIN -->
-<div class="tradingview-widget-container">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-  {
-  "symbols": [
+india_tickers = [
     { "proName": "NSE:NIFTY", "title": "Nifty 50" },
     { "proName": "NSE:BANKNIFTY", "title": "Bank Nifty" },
     { "proName": "NSE:NIFTYNEXT50", "title": "Nifty Next 50" },
     { "proName": "NSE:CNXIT", "title": "Nifty IT" },
     { "proName": "BSE:SENSEX", "title": "Sensex" }
-  ],
-  "showSymbolLogo": true,
-  "isTransparent": false,
-  "displayMode": "adaptive",
-  "colorTheme": "light",
-  "locale": "in"
-}
-  </script>
-</div>
-<!-- TradingView Widget END -->
-"""
-components.html(widget_india, height=70)
+]
+render_tradingview_ticker(india_tickers, "🇮🇳 Indian Market Pulse")
 
 # ROW 2: US TECH & INDICES
-# st.subheader("🇺🇸 US Tech & Indices")
-widget_us = """
-<!-- TradingView Widget BEGIN -->
-<div class="tradingview-widget-container">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-  {
-  "symbols": [
+us_tickers = [
     { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
     { "proName": "NASDAQ:IXIC", "title": "NASDAQ" },
     { "proName": "NASDAQ:META", "title": "Meta" },
@@ -138,43 +115,16 @@ widget_us = """
     { "proName": "NASDAQ:AMZN", "title": "Amazon" },
     { "proName": "NASDAQ:TSLA", "title": "Tesla" },
     { "proName": "NASDAQ:MSFT", "title": "Microsoft" }
-  ],
-  "showSymbolLogo": true,
-  "isTransparent": false,
-  "displayMode": "adaptive",
-  "colorTheme": "light",
-  "locale": "in"
-}
-  </script>
-</div>
-<!-- TradingView Widget END -->
-"""
-components.html(widget_us, height=70)
+]
+render_tradingview_ticker(us_tickers, "🇺🇸 US Tech & Indices")
 
 # ROW 3: COMMODITIES
-# st.subheader("🛢️ Commodities")
-widget_commodities = """
-<!-- TradingView Widget BEGIN -->
-<div class="tradingview-widget-container">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-  {
-  "symbols": [
+commodity_tickers = [
     { "proName": "TVC:GOLD", "title": "Gold" },
     { "proName": "TVC:SILVER", "title": "Silver" },
     { "proName": "TVC:USOIL", "title": "Crude Oil" }
-  ],
-  "showSymbolLogo": true,
-  "isTransparent": false,
-  "displayMode": "adaptive",
-  "colorTheme": "light",
-  "locale": "in"
-}
-  </script>
-</div>
-<!-- TradingView Widget END -->
-"""
-components.html(widget_commodities, height=70)
+]
+render_tradingview_ticker(commodity_tickers, "🛢️ Commodities")
 
 st.divider()
 
