@@ -20,6 +20,9 @@ def load_lottieurl(url: str):
 lottie_stock = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_hcipoqvc.json")
 
 # Header Section
+# ... imports remain same ...
+
+# Header Section
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -36,32 +39,142 @@ with col2:
 
 st.divider()
 
-# Live Market Overview
-st.subheader("🌍 Global Market Pulse")
+# ------------------------------------------------------------------------------
+# DETAILED MARKET PULSE (Python - Cached)
+# ------------------------------------------------------------------------------
+st.subheader("📊 Detailed Market Pulse (Cached)")
+st.caption("Data fetched via Yahoo Finance (15-min delayed for some indices). Refreshes every 5 seconds.")
 
 @st.fragment(run_every=5)
 def render_market_pulse():
     # Fetch Data for Indices in Bulk
     tickers = list(GLOBAL_INDICES.values())
-    bulk_prices = get_live_prices_bulk(tickers)
+    bulk_data = get_live_prices_bulk(tickers)
     
     metrics = []
     for name, ticker in GLOBAL_INDICES.items():
         formatted_ticker = format_ticker(ticker)
-        price = bulk_prices.get(formatted_ticker)
-        metrics.append({"Index": name, "Price": price, "Ticker": ticker})
+        data = bulk_data.get(formatted_ticker)
+        
+        if data and isinstance(data, dict):
+             metrics.append({
+                 "Index": name, 
+                 "Price": data.get('price'), 
+                 "Change": data.get('change', 0.0), 
+                 "Pct": data.get('pct', 0.0), 
+                 "Ticker": ticker
+             })
+        else:
+             # Fallback if data is missing or unexpected format
+             metrics.append({"Index": name, "Price": None, "Ticker": ticker})
 
     # Display Metrics in Rows of 5
     cols = st.columns(5)
     for i, metric in enumerate(metrics):
         with cols[i % 5]:
             price_val = metric['Price']
-            if price_val:
-                st.metric(metric['Index'], f"{price_val:,.2f}")
+            if price_val is not None:
+                change = metric.get('Change', 0.0)
+                pct = metric.get('Pct', 0.0)
+                st.metric(
+                    label=metric['Index'], 
+                    value=f"{price_val:,.2f}", 
+                    delta=f"{change:+.2f} ({pct:+.2f}%)"
+                )
             else:
                 st.metric(metric['Index'], "Loading...")
 
 render_market_pulse()
+
+st.divider()
+
+import streamlit.components.v1 as components
+
+# ------------------------------------------------------------------------------
+# TRADINGVIEW WIDGETS (Real-time Streaming)
+# ------------------------------------------------------------------------------
+
+# ROW 1: INDIA INDICES
+# st.subheader("🇮🇳 Indian Market Pulse")
+widget_india = """
+<!-- TradingView Widget BEGIN -->
+<div class="tradingview-widget-container">
+  <div class="tradingview-widget-container__widget"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+  {
+  "symbols": [
+    { "proName": "NSE:NIFTY", "title": "Nifty 50" },
+    { "proName": "NSE:BANKNIFTY", "title": "Bank Nifty" },
+    { "proName": "NSE:NIFTYNEXT50", "title": "Nifty Next 50" },
+    { "proName": "NSE:CNXIT", "title": "Nifty IT" },
+    { "proName": "BSE:SENSEX", "title": "Sensex" }
+  ],
+  "showSymbolLogo": true,
+  "isTransparent": false,
+  "displayMode": "adaptive",
+  "colorTheme": "light",
+  "locale": "in"
+}
+  </script>
+</div>
+<!-- TradingView Widget END -->
+"""
+components.html(widget_india, height=70)
+
+# ROW 2: US TECH & INDICES
+# st.subheader("🇺🇸 US Tech & Indices")
+widget_us = """
+<!-- TradingView Widget BEGIN -->
+<div class="tradingview-widget-container">
+  <div class="tradingview-widget-container__widget"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+  {
+  "symbols": [
+    { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
+    { "proName": "NASDAQ:IXIC", "title": "NASDAQ" },
+    { "proName": "NASDAQ:META", "title": "Meta" },
+    { "proName": "NASDAQ:GOOGL", "title": "Google" },
+    { "proName": "NASDAQ:AAPL", "title": "Apple" },
+    { "proName": "NASDAQ:AMZN", "title": "Amazon" },
+    { "proName": "NASDAQ:TSLA", "title": "Tesla" },
+    { "proName": "NASDAQ:MSFT", "title": "Microsoft" }
+  ],
+  "showSymbolLogo": true,
+  "isTransparent": false,
+  "displayMode": "adaptive",
+  "colorTheme": "light",
+  "locale": "in"
+}
+  </script>
+</div>
+<!-- TradingView Widget END -->
+"""
+components.html(widget_us, height=70)
+
+# ROW 3: COMMODITIES
+# st.subheader("🛢️ Commodities")
+widget_commodities = """
+<!-- TradingView Widget BEGIN -->
+<div class="tradingview-widget-container">
+  <div class="tradingview-widget-container__widget"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+  {
+  "symbols": [
+    { "proName": "TVC:GOLD", "title": "Gold" },
+    { "proName": "TVC:SILVER", "title": "Silver" },
+    { "proName": "TVC:USOIL", "title": "Crude Oil" }
+  ],
+  "showSymbolLogo": true,
+  "isTransparent": false,
+  "displayMode": "adaptive",
+  "colorTheme": "light",
+  "locale": "in"
+}
+  </script>
+</div>
+<!-- TradingView Widget END -->
+"""
+components.html(widget_commodities, height=70)
 
 st.divider()
 

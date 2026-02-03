@@ -22,7 +22,7 @@ def get_live_price(ticker):
 
 @st.cache_data(ttl=60)
 def get_live_prices_bulk(tickers):
-    """Get live prices for multiple tickers in parallel"""
+    """Get live prices and daily change for multiple tickers in parallel"""
     if not tickers:
         return {}
     
@@ -31,33 +31,52 @@ def get_live_prices_bulk(tickers):
     formatted_str = " ".join(symbols)
     
     try:
-        # Use bulk download
-        data = yf.download(formatted_str, period="1d", threads=True, progress=False)
+        # Use bulk download - fetch 5d to ensure we get previous close
+        data = yf.download(formatted_str, period="5d", threads=True, progress=False)
         
-        # Helper to extract last price
-        def get_last_price(df_or_series):
-            if df_or_series.empty:
-                return None
-            return df_or_series.iloc[-1]
-
         results = {}
         
-        # yfinance structure depends on number of tickers
+        # Helper to process a single ticker's series
+        def process_series(series):
+            if series.empty:
+                return None
+            
+            # Get last valid price
+            current_price = series.iloc[-1]
+            
+            # Get previous close
+            # If we have at least 2 days of data
+            if len(series) >= 2:
+                prev_close = series.iloc[-2]
+                change = current_price - prev_close
+                pct_change = (change / prev_close) * 100
+                return {
+                    "price": current_price,
+                    "change": change,
+                    "pct": pct_change
+                }
+            else:
+                # Fallback if only 1 data point (e.g. effective IPO or error)
+                return {
+                    "price": current_price,
+                    "change": 0.0,
+                    "pct": 0.0
+                }
+
+        # Handling yfinance multiple tickers vs single ticker structure
         if len(symbols) == 1:
             sym = symbols[0]
             if 'Close' in data:
-                 # Check if it's a series or dataframe
                  val = data['Close']
-                 if isinstance(val, pd.Series):
-                      results[sym] = val.iloc[-1]
-                 else:
-                      results[sym] = val.iloc[-1]
+                 if isinstance(val, pd.DataFrame): # Sometimes yf returns DF for single ticker if configured differently
+                    val = val.iloc[:, 0]
+                 results[sym] = process_series(val)
         else:
              if 'Close' in data:
                  close_data = data['Close']
                  for sym in symbols:
                      if sym in close_data:
-                         results[sym] = close_data[sym].iloc[-1]
+                         results[sym] = process_series(close_data[sym])
                      else:
                          results[sym] = None
         
