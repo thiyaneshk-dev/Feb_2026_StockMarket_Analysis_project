@@ -14,5 +14,6 @@ dependencies = [
     "streamlit>=1.53.1",
     "streamlit-autorefresh>=1.0.1",
     "streamlit-lottie>=0.0.5",
+    "tqdm>=4.67.2",
     "yfinance>=1.1.0",
 ]

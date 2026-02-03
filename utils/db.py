@@ -38,6 +38,25 @@ def init_db():
     # Create sequence for holdings ID if needed
     conn.execute("CREATE SEQUENCE IF NOT EXISTS seq_holdings_id START 1")
     
+    # Historical Data Table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS historical_data (
+            ticker VARCHAR,
+            date TIMESTAMP,
+            open DOUBLE,
+            high DOUBLE,
+            low DOUBLE,
+            close DOUBLE,
+            volume DOUBLE,
+            rsi DOUBLE,
+            ma50 DOUBLE,
+            ma200 DOUBLE,
+            supertrend DOUBLE,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (ticker, date)
+        )
+    """)
+    
     conn.close()
 
 def add_ticker(ticker):
@@ -98,5 +117,58 @@ def get_portfolio_db():
     try:
         df = conn.execute("SELECT ticker, shares, buy_price, asset_type FROM holdings").fetchdf()
         return df
+    finally:
+        conn.close()
+
+def save_historical_data(ticker, df):
+    """Save historical data for a ticker (Upsert)"""
+    conn = get_connection()
+    try:
+        # Add ticker column if missing
+        df = df.copy()
+        df['ticker'] = ticker
+        df.reset_index(inplace=True) # Ensure Date is a column if it's index
+        
+        # Rename columns to match DB schema if needed
+        # Expected: Date, Open, High, Low, Close, Volume, ticker, + indicators
+        # Mapping standard yfinance/pandas names to lowercase DB columns
+        df.columns = [c.lower() for c in df.columns]
+        
+        # Register for bulk insert
+        conn.register('temp_hist', df)
+        
+        # Delete existing data for this ticker to define clean slate or range? 
+        # For simplicity in batch, we can delete entries for this ticker and re-insert 
+        # OR use ON CONFLICT DO UPDATE if DuckDB supports it nicely.
+        # Let's use Delete + Insert for now to modify full history cleanly.
+        conn.execute("DELETE FROM historical_data WHERE ticker = ?", [ticker])
+        
+        # Insert
+        # Only selecting columns that exist in table
+        conn.execute("""
+            INSERT INTO historical_data (ticker, date, open, high, low, close, volume, rsi, ma50, ma200, supertrend)
+            SELECT ticker, date, open, high, low, close, volume, rsi, ma50, ma200, supertrend 
+            FROM temp_hist
+        """)
+        return True
+    except Exception as e:
+        print(f"Error saving history for {ticker}: {e}")
+        return False
+    finally:
+        conn.close()
+
+def get_historical_data(ticker, limit=365):
+    """Get historical data for a ticker"""
+    conn = get_connection()
+    try:
+        df = conn.execute(f"""
+            SELECT * FROM historical_data 
+            WHERE ticker = ? 
+            ORDER BY date ASC
+        """, [ticker]).fetchdf()
+        return df
+    except Exception as e:
+        print(f"Error getting history for {ticker}: {e}")
+        return pd.DataFrame()
     finally:
         conn.close()

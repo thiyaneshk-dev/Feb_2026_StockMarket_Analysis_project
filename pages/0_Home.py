@@ -74,12 +74,22 @@ def render_market_pulse():
         with cols[i % 5]:
             price_val = metric['Price']
             if price_val is not None:
+                # Ensure values are scalars
+                if isinstance(price_val, pd.Series):
+                    price_val = price_val.iloc[0]
+                if isinstance(price_val, dict):
+                    price_val = list(price_val.values())[0] if price_val else 0
+
                 change = metric.get('Change', 0.0)
+                if isinstance(change, pd.Series): change = change.iloc[0]
+                
                 pct = metric.get('Pct', 0.0)
+                if isinstance(pct, pd.Series): pct = pct.iloc[0]
+                
                 st.metric(
                     label=metric['Index'], 
-                    value=f"{price_val:,.2f}", 
-                    delta=f"{change:+.2f} ({pct:+.2f}%)"
+                    value=f"{float(price_val):,.2f}", 
+                    delta=f"{float(change):+.2f} ({float(pct):+.2f}%)"
                 )
             else:
                 st.metric(metric['Index'], "Loading...")

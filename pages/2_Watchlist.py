@@ -135,55 +135,84 @@ with tab3:
                             trend = "Bullish 🐂" if cur_price > st_val else "Bearish 🐻"
                             st.metric("SuperTrend (10,3)", trend, f"Level: {st_val:.2f}")
 
-                    # Charting
-                    st.subheader("Interactive Chart")
-                    
-                    # Date Range Slider
-                    # Zoom to last 6 months by default
-                    
-                    fig = go.Figure()
-                    
-                    # Candlestick
-                    fig.add_trace(go.Candlestick(
-                        x=full_hist.index,
-                        open=full_hist['Open'],
-                        high=full_hist['High'],
-                        low=full_hist['Low'],
-                        close=full_hist['Close'],
-                        name='Price'
-                    ))
-                    
-                    # SuperTrends - Add traces only if data exists
-                    colors = {'st_10_2': 'blue', 'st_10_3': 'purple', 'st_20_5': 'green'}
-                    for st_key, color in colors.items():
-                        if indicators.get(st_key):
-                            fig.add_trace(go.Scatter(
-                                x=full_hist.index, 
-                                y=indicators[st_key], 
-                                name=f"SuperTrend ({st_key.replace('st_', '').replace('_', ',')})", 
-                                line=dict(width=1, dash='dot', color=color)
-                            ))
-                    
-                    # Moving Averages
-                    if indicators.get('ma50_series') is not None:
-                         fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ma50_series'], name='MA 50', line=dict(color='orange', width=1)))
-                    
-                    if indicators.get('ma200_series') is not None:
-                         fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ma200_series'], name='MA 200', line=dict(color='red', width=1)))
+                    # 3. Interactive Chart & Data Table Layout
+                    col_chart, col_data = st.columns([3, 1])
 
-                    # EMA
-                    if indicators.get('ema20_series') is not None:
-                         fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ema200_series'], name='EMA 20', line=dict(color='cyan', width=1)))
-
-                    fig.update_layout(
-                        xaxis_rangeslider_visible=False,
-                        height=700,
-                        title=f"{formatted_ticker} Technical Chart",
-                        yaxis_title="Price",
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                    )
-                         
-                    st.plotly_chart(fig, use_container_width=True)
+                    with col_chart:
+                        # Charting
+                        st.subheader("Interactive Chart")
+                        
+                        fig = go.Figure()
+                        
+                        # Candlestick
+                        fig.add_trace(go.Candlestick(
+                            x=full_hist.index,
+                            open=full_hist['Open'],
+                            high=full_hist['High'],
+                            low=full_hist['Low'],
+                            close=full_hist['Close'],
+                            name='Price'
+                        ))
+                        
+                        # SuperTrends - Add traces only if data exists
+                        colors = {'st_10_2': 'blue', 'st_10_3': 'purple', 'st_20_5': 'green'}
+                        for st_key, color in colors.items():
+                            if indicators.get(st_key):
+                                st_series = pd.Series(indicators[st_key], index=full_hist.index)
+                                fig.add_trace(go.Scatter(
+                                    x=full_hist.index, 
+                                    y=st_series, 
+                                    name=f"SuperTrend ({st_key.replace('st_', '').replace('_', ',')})", 
+                                    line=dict(width=2, dash='dot', color=color),
+                                    mode='lines'
+                                ))
+                        
+                        # Moving Averages
+                        if indicators.get('ma50_series') is not None:
+                             fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ma50_series'], name='MA 50', line=dict(color='orange', width=1)))
+                        
+                        if indicators.get('ma200_series') is not None:
+                             fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ma200_series'], name='MA 200', line=dict(color='red', width=1)))
+    
+                        # EMA
+                        if indicators.get('ema20_series') is not None:
+                             fig.add_trace(go.Scatter(x=full_hist.index, y=indicators['ema20_series'], name='EMA 20', line=dict(color='cyan', width=1)))
+    
+                        fig.update_layout(
+                            xaxis_rangeslider_visible=False,
+                            height=700,
+                            title=f"{formatted_ticker} Technical Chart",
+                            yaxis_title="Price",
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            margin=dict(l=20, r=20, t=40, b=20)
+                        )
+                             
+                        st.plotly_chart(fig, use_container_width=True)
+                    
+                    with col_data:
+                        st.subheader("📋 Data View")
+                        # Prepare Data to display
+                        # Combine key metrics into a DF
+                        view_df = full_hist[['Close', 'Volume']].copy()
+                        view_df['RSI'] = indicators.get('rsi_series')
+                        if indicators.get('st_10_3'):
+                            view_df['SuperTrend'] = indicators['st_10_3']
+                        
+                        # Sort new to old
+                        view_df = view_df.sort_index(ascending=False)
+                        view_df.index = view_df.index.strftime('%Y-%m-%d')
+                        
+                        st.dataframe(
+                            view_df,
+                            use_container_width=True,
+                            height=700,
+                            column_config={
+                                "Close": st.column_config.NumberColumn("Close", format="%.2f"),
+                                "RSI": st.column_config.NumberColumn("RSI", format="%.1f"),
+                                "SuperTrend": st.column_config.NumberColumn("ST", format="%.2f"),
+                                "Volume": st.column_config.NumberColumn("Vol", format="%d compact"),
+                            }
+                        )
                     
                 else:
                     st.error("No data found.")
